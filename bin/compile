@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir> <env-dir>
+
+set -euo pipefail
+
+BUILD_DIR=$1
+CACHE_DIR=$2
+ENV_DIR=$3
+VENDOR_DIR="${BUILD_DIR}/vendor"
+
+mkdir -p $CACHE_DIR $VENDOR_DIR
+
+OS=""
+case $(uname) in
+    "Linux") OS="linux";;
+    "Darwin") OS="darwin";;
+    *)
+        echo "error: unsupported platform" >&2
+        exit 1
+        ;;
+esac
+
+ARCH=""
+case $(uname -m) in
+    "x86_64") ARCH="x64";;
+    "arm64") ARCH="arm64";;
+    "aarch64") ARCH="arm64";;
+    *)
+        echo "error: unsupported platform" >&2
+        exit 1
+        ;;
+esac
+
+if [ -z "${PULUMI_VERSION-}" ]; then
+    if ! PULUMI_VERSION=$(curl --fail --silent -L "https://www.pulumi.com/latest-version"); then
+        echo "error: could not determine latest version of Pulumi, try setting PULUMI_VERSION=X.Y.Z to" >&2
+        echo "       install an explicit version" >&2
+        exit 1
+    fi
+fi
+
+PULUMI_URL="https://get.pulumi.com/releases/sdk/pulumi-v${PULUMI_VERSION}-${OS}-${ARCH}.tar.gz"
+TARBALL_DEST="${CACHE_DIR}/pulumi-${PULUMI_VERSION}-${OS}-${ARCH}.tar.gz"
+
+echo "-----> Downloading Pulumi ${PULUMI_VERSION}"
+[ -e $TARBALL_DEST ] || curl --silent --show-error --fail -L -o "${TARBALL_DEST}" "${PULUMI_URL}"
+
+echo "-----> Installing binaries under ${VENDOR_DIR}/pulumi"
+tar xzf "${TARBALL_DEST}" -C "${VENDOR_DIR}"
+
+echo "-----> Writing .profile.d script"
+mkdir -p $BUILD_DIR/.profile.d
+echo "export PATH=\"\$PATH:$(readlink -e ${VENDOR_DIR})/pulumi\"" > $BUILD_DIR/.profile.d/heroku-buildpack-pulumi.sh
