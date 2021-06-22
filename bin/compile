@@ -50,4 +50,4 @@ tar xzf "${TARBALL_DEST}" -C "${VENDOR_DIR}"
 
 echo "-----> Writing .profile.d script"
 mkdir -p $BUILD_DIR/.profile.d
-echo "export PATH=\"\$PATH:$(readlink -e ${VENDOR_DIR})/pulumi\"" > $BUILD_DIR/.profile.d/heroku-buildpack-pulumi.sh
+echo "export PATH=\"\$PATH:/app/vendor/pulumi\"" > $BUILD_DIR/.profile.d/heroku-buildpack-pulumi.sh
